@@ -1,0 +1,58 @@
+---
+title: "eCASVote"
+summary: "A paper-ballot and blockchain election system for the UPV CAS Student Council, built as my undergraduate thesis."
+role: "Project Manager, Full Stack Developer"
+team: "3 people"
+timeline: "Aug 2025 – Jun 2026"
+stack: ["Hyperledger Fabric", "TypeScript", "Node.js/Express", "Prisma", "Next.js", "Python", "FastAPI", "OpenCV", "Docker", "Nginx"]
+order: 1
+featured: true
+cover: "/images/projects/ecasvote/cover.png"
+links:
+  repo: ""
+  live: ""
+---
+
+## The problem
+
+Student council elections at UPV's College of Arts and Sciences run on paper ballots. Paper is familiar and easy to trust, but once ballots are counted there's no simple way for anyone to check that the results weren't changed along the way.
+
+We wanted to keep the paper ballot voters already know and add a record that no single person could quietly edit.
+
+## What we built
+
+eCASVote is a hybrid system. Students still vote on paper, but each ballot is tied to a token issued on a permissioned blockchain. Scanned ballots are read automatically and recorded on the chain, so the final count can be checked independently.
+
+I led a 3-person team as project manager while building across the full stack. We built it as our undergraduate thesis, which we defended and passed.
+
+{/* Architecture diagram goes here: Next.js app -> Express gateway -> Fabric network (3 orgs) + SQLite, with the OMR service feeding scanned ballots in */}
+
+The system has four parts:
+
+- **Blockchain network.** A Hyperledger Fabric network with three organizations: the Student Election Board, the departments, and the Poll and Monitoring Board. I wrote the chaincode in TypeScript. It handles the election lifecycle, candidates and positions, and ballot casting. Private data collections keep voter identity and ballot contents confidential while the records stay verifiable.
+- **Gateway API.** An Express and Prisma service that sits between the app and the network and keeps the blockchain and the database in sync.
+- **Web app.** A Next.js frontend with separate dashboards for students, admins, and validators.
+- **Ballot scanner.** A Python service using FastAPI and OpenCV that reads scanned paper ballots, matches each one to its blockchain token through a QR code, and detects which bubbles were filled in.
+
+## The hardest problem: getting it to run on the server
+
+Everything worked on our laptops. Then we tried deploying the network to a Debian server on the university LAN, and the Fabric peers failed every time they tried to build the chaincode. The cause was the server's newer Linux kernel (6.12), which broke the peers' built-in chaincode build step.
+
+{/* Add one or two sentences here in your own words: the actual error you saw and how you traced it to the kernel. */}
+
+Instead of downgrading the server, I moved the chaincode to Chaincode-as-a-Service (CCaaS). With CCaaS, the chaincode runs as its own container and the peers connect to it, so they no longer need to build anything themselves. I then packaged the frontend and the ballot scanner with multi-stage Docker builds, ran everything with Docker Compose, and put it all behind an Nginx reverse proxy.
+
+## Making sure it could be trusted
+
+An election system that can't prove its own results isn't worth much, so testing got as much attention as features.
+
+I wrote a script that checks the blockchain and the database against each other and confirms no one voted twice, and ran it against the live network. We also tested failures on purpose: shutting down nodes mid-election and tampering with database records to confirm the system caught the mismatch. For the scanner, we kept a checklist of edge cases like faint marks, overvotes, and blank ballots.
+
+{/* Check the scanner edge cases above against what you actually tested and edit as needed. */}
+
+## What I learned
+
+{/* Write 2 to 3 sentences in your own voice. Some prompts:
+    - What would you design differently if you started over?
+    - What did leading a team of three teach you that coding alone didn't?
+    - What did the panel push back on, and were they right? */}
